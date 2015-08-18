@@ -1,6 +1,6 @@
 # Cuberender
 
-* Render twisty cubes and animate possible movements *
+** Render twisty cubes and animate possible movements **
 
 ## Usage
 
@@ -31,4 +31,4 @@
 
 -----
 
-* Please submit an issue if you use this, or want to use this, and have trouble setting it up. *
+** Please submit an issue if you use this, or want to use this, and have trouble setting it up. **

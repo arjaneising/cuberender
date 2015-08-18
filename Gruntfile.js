@@ -22,18 +22,31 @@ module.exports = function(grunt) {
           style: 'expanded'
         },
         files: {
-          'dist/cuberender.css': 'src/style/cuberender.sass'
+          'tmp/cuberender.css': 'src/style/cuberender.sass'
         }
       },
       build: {
         options: {
-          style: 'compressed'
+          style: 'expanded'
         },
         files: {
-          'dist/cuberender.css': 'src/style/cuberender.sass'
+          'tmp/cuberender.css': 'src/style/cuberender.sass'
         }
       }
-    }
+    },
+
+
+
+
+    autoprefixer: {
+      options: {
+        browsers: ['last 10 versions', 'ie 10']
+      },
+      build: {
+        src: 'tmp/cuberender.css',
+        dest: 'dist/cuberender.css'
+      },
+    },
 
 
   });
@@ -42,10 +55,11 @@ module.exports = function(grunt) {
   // Load tasks
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-sass');
+  grunt.loadNpmTasks('grunt-autoprefixer');
 
   // Tasks
-  grunt.registerTask('dev', ['uglify:build', 'sass:dev']);
-  grunt.registerTask('build', ['uglify:build', 'sass:build']);
+  grunt.registerTask('dev', ['uglify:build', 'sass:dev', 'autoprefixer:build']);
+  grunt.registerTask('build', ['uglify:build', 'sass:build', 'autoprefixer:build']);
   grunt.registerTask('default', ['build']);
 
 };

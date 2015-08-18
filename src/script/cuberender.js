@@ -1,6 +1,6 @@
 ;(function (win, doc) {
 
-  var sides, layers, baseOrientation;
+  var sides, layers, baseOrientation, transitionEnd, transform;
 
   sides = ['f', 'u', 'r', 'l', 'd', 'b'];
   middleMoves = ['M', 'E', 'S'];
@@ -33,16 +33,63 @@
     }
   };
 
-
-
   var init = function () {
     var cuberenders = doc.querySelectorAll('.cuberender');
+
+    initPrefixes();
 
     [].forEach.call(cuberenders, function (wrapper) {
       var cuberender = Object.create(CuberenderProto, CuberenderProperties);
       cuberender.create(wrapper);
     });
   };
+
+
+
+  /**
+   * Initiates vendor prefixes detection.
+   */
+  var initPrefixes = function () {
+    transitionEnd = (function () {
+      var transitions, t, element, toReturn;
+      transitions = {
+        'WebkitTransition' : 'webkitTransitionEnd',
+        'MozTransition'    : 'transitionend',
+        'OTransition'      : 'oTransitionEnd otransitionend',
+        'transition'       : 'transitionend'
+      };
+      element = doc.createElement('a');
+      toReturn = null;
+
+      Object.keys(transitions).forEach(function (t) {
+        if (element.style[t] !== undefined) {
+          toReturn = transitions[t];
+          return false;
+        }
+      });
+
+      return toReturn;
+    })();
+
+
+
+    transform = (function () {
+      var transforms, t, element, toReturn;
+      transforms = ['WebkitTransform', 'MozTransform', 'OTransform', 'transform'];
+      element = doc.createElement('a');
+      toReturn = null;
+
+      transforms.forEach(function (transform) {
+        if (element.style[transform] !== undefined) {
+          toReturn = transform;
+          return false;
+        }
+      });
+      
+      return toReturn;
+    })();
+  };
+
 
 
 
@@ -90,7 +137,6 @@
 
   CuberenderProto.create = function (wrapper) {
     this.wrapper = wrapper;
-
 
     this.nodes = {};
     this.current = -1;
@@ -147,7 +193,7 @@
         layout[side] = [];
         return;
       }
-      codes = sideElm.innerText.split(' ');
+      codes = (sideElm.innerText || sideElm.textContent).split(' ');
       if (codes.length === 9) {
         layout[side] = codes;
       }
@@ -175,7 +221,7 @@
 
     moves = [].map.call(this.nodes.moves.querySelectorAll('li'), function (move) {
       return {
-        code: move.innerText,
+        code: (move.innerText || move.textContent),
         highlight: move.getAttribute('data-highlight') || null
       };
     });
@@ -190,7 +236,7 @@
    * Returns the Node reference to the cube
    */
   CuberenderProto.generateCube = function () {
-    var elm, cubeElm;
+    var elm, cubeElm, afterTransition;
 
     elm = 'div';
     cubeElm = doc.createElement(elm);
@@ -200,12 +246,14 @@
       cube: cubeElm
     }
 
+    // All three layers
     Object.keys(layers).forEach(function (layer) {
       var layerElm = doc.createElement(elm);
       layerElm.classList.add(layer, 'layer');
       cubeObj[layer] = layerElm;
       cubeElm.appendChild(layerElm);
 
+      // All 6 sides
       Object.keys(layers[layer]).forEach(function (side) {
         var sideElm, i, faceElm;
         sideElm = doc.createElement(elm);
@@ -232,8 +280,8 @@
       this.playNext();
     }.bind(this);
 
-    cubeObj.top.addEventListener('webkitTransitionEnd', afterTransition);
-    cubeObj.middle.addEventListener('webkitTransitionEnd', afterTransition);
+    cubeObj.top.addEventListener(transitionEnd, afterTransition);
+    cubeObj.middle.addEventListener(transitionEnd, afterTransition);
   };
 
 
@@ -248,19 +296,23 @@
 
     clonedLayout = clone(this.layout);
 
+    // Timeline will be a new array
     timeline = this.moves.map(function (move) {
       var toReturn, turnFunction;
 
+      // At the end, this will be returned, including the move, highligh and css orientation
       toReturn = {
         code: move.code,
         highlight: move.highlight,
         cssRotates: getCssRotate(move.code)
       };
 
+      // Turn the cube so that the move side is the top layer
       clonedLayout = rotateLayout(clonedLayout, move.code, false);
-
       toReturn.beforeAnimation = clone(clonedLayout);
 
+      // Wether to rotate the top or middle layer
+      // turnMiddle and turnFront are two functions
       if (isMiddleMove(move.code)) {
         turnFunction = turnMiddle;
       }
@@ -268,6 +320,7 @@
         turnFunction = turnFront;
       }
 
+      // Rotate it a certain way
       switch (move.code.charAt(1)) {
         case "'":
         case 'i':
@@ -281,6 +334,7 @@
           break;
       }
 
+      // The layout after the move and animation
       toReturn.afterAnimation = clone(clonedLayout);
       clonedLayout = rotateLayout(clonedLayout, move.code, true);
 
@@ -454,7 +508,10 @@
   };
 
 
-
+  /**
+   * Rotate a certain layout's middle face clockwise or anticlockwise
+   * Returns the new layout
+   */
   var turnMiddle = function (layout, anticlockwise) {
     var clonedLayout = clone(layout);
     return {
@@ -512,6 +569,11 @@
     ]
   };
 
+
+  /**
+   * Rotate a side when the middle face is moved
+   * Returns the new side
+   */
   var rotateMiddle = function (sideA, sideB, sideD, anticlockwise) {
     var clonedSide, sideMerge;
     clonedSide = clone(sideA);
@@ -526,7 +588,7 @@
       clonedSide[6],
       clonedSide[7],
       clonedSide[8]
-    ]
+    ];
   };
 
 
@@ -546,6 +608,9 @@
   };
 
 
+  /**
+   * Highlights given cube coordinates
+   */
   var highlight = function (cube, highlight) {
     [].forEach.call(cube.querySelectorAll('.highlight'), function (previous) {
       previous.classList.remove('highlight');
@@ -562,30 +627,36 @@
 
 
 
+
+
+  /**
+   * Render previous / play-pause / next buttons
+   */
   CuberenderProto.generateNavigation = function () {
     var button, previous, play, next, nav;
 
     button = 'button';
-
     nav = doc.createElement('nav');
 
+    // Previous
     previous = doc.createElement(button);
     previous.classList.add('previous');
     previous.innerHTML = 'Previous';
     nav.appendChild(previous);
+    previous.addEventListener('click', this.playPrevious.bind(this));
 
+    // Play
     play = doc.createElement(button);
     play.classList.add('play');
     play.innerHTML = 'Play';
     nav.appendChild(play);
+    play.addEventListener('click', this.playPause.bind(this));
 
+    // Next
     next = doc.createElement(button);
     next.classList.add('next');
     next.innerHTML = 'Next';
     nav.appendChild(next);
-
-    previous.addEventListener('click', this.playPrevious.bind(this));
-    play.addEventListener('click', this.playPause.bind(this));
     next.addEventListener('click', this.playNext.bind(this));
 
     this.wrapper.insertBefore(nav, this.nodes.moves);
@@ -594,12 +665,20 @@
   };
 
 
+
+  /**
+   * Remove all classes for animation, after the animation is done
+   */
   CuberenderProto.resetCube = function () {
     this.cubeObj.top.classList.remove('rotate-anticlockwise', 'rotate-clockwise', 'rotate-twice');
     this.cubeObj.middle.classList.remove('rotate-anticlockwise', 'rotate-clockwise', 'rotate-twice');
   };
 
 
+  /**
+   * Trigger a certain animation in the timeline
+   * based on the target's `data-index` attribute
+   */
   CuberenderProto.playMove = function (event) {
     var moveIndex;
     event.preventDefault();
@@ -609,6 +688,9 @@
   };
 
 
+  /**
+   * Start and stop the animations
+   */
   CuberenderProto.playPause = function () {
     this.playing = !this.playing;
     this.current = Math.max(this.current - 1, -1);
@@ -616,16 +698,20 @@
   };
 
 
-
+  /**
+   * Trigger previous animation in timeline to start
+   */
   CuberenderProto.playPrevious = function () {
     this.current = Math.max(this.current - 2, -1);
     this.playNext();
   };
 
 
-
+  /**
+   * Trigger next animation in timeline to start
+   */
   CuberenderProto.playNext = function () {
-    var move, moveNode, cube, top, moddle, moveIndex, rotatable;
+    var move, moveNode, cube, top, moddle, moveIndex, rotatable, className;
 
     this.resetCube();
 
@@ -633,6 +719,7 @@
     top = this.cubeObj.top;
     middle = this.cubeObj.middle;
 
+    // Make sure we use the correct offset in the timeline
     moveIndex = ++this.current;
 
     if (moveIndex >= this.timeline.length) {
@@ -641,39 +728,49 @@
     }
 
     move = this.timeline[moveIndex];
+
+
+    // Paint the cube with the layout for this step
     paint(cube, move.beforeAnimation);
+
+    // Setup highlights for this step
     highlight(cube, move.highlight);
+
+    // What layout to paint after the animation is finished and the cube reset
     this.afterTransitionLayout = move.afterAnimation;
 
+    // Decide wether to animate the top layer, or the middle layer
     rotatable = isMiddleMove(move.code) ? middle : top;
 
-    cube.style.transform = baseOrientation + move.cssRotates;
+    // Rotate the cube
+    cube.style[transform] = baseOrientation + move.cssRotates;
 
     if (this.playing) {
+      // Check which way we are turning the layer
+      switch (move.code.charAt(1)) {
+        case "'":
+        case 'i':
+          className = 'rotate-anticlockwise';
+          break;
+        case '2':
+          className = 'rotate-twice';
+          break;
+        default:
+          className = 'rotate-clockwise';
+          break;
+      }
+
+      // Trigger the animation
       setTimeout(function () {
-        var className;
-        switch (move.code.charAt(1)) {
-          case "'":
-          case 'i':
-            className = 'rotate-anticlockwise';
-            break;
-          case '2':
-            className = 'rotate-twice';
-            break;
-          default:
-            className = 'rotate-clockwise';
-            break;
-        }
         rotatable.classList.add(className);
       }, 1000);
     }
 
+    // Set classnames for current playback correctly
     moveNode = this.nodes.moves.querySelector('li.is-playing');
-
     if (moveNode) {
       moveNode.classList.remove('is-playing');
     }
-
     this.nodes.moves.querySelector('li:nth-child(' + (moveIndex + 1) + ')').classList.add('is-playing');
   };
 
