@@ -1,0 +1,145 @@
+.cuberender
+  border: 0.1875em solid #DDD
+  margin: 2em
+  perspective: 35em
+  position: relative
+  padding-top: 20em
+
+  .cube-layout
+    display: none
+
+  nav
+    text-align: center
+
+    button
+      display: inline-block
+      margin: 0 0.5em
+
+  .moves
+    padding: 1em
+    margin: 0
+    text-align: center
+
+    li
+      border-radius: 0.2em
+      display: inline-block
+      width: 1.4em
+      height: 1.4em
+      line-height: 1.4em
+
+      + li
+        margin-left: -0.1em
+
+      &.is-playing
+        background: #CCF
+
+      a
+        color: inherit
+        display: block
+        height: 100%
+        width: 100%
+        text-decoration: none
+
+  .cube
+    height: 9em
+    left: 50%
+    margin: -4.5em 0 0 -4.5em
+    position: absolute
+    top: 10em
+    transform-origin: 50% 50%
+    transform-style: preserve-3d
+    width: 9em
+
+    .layer
+      transform-style: preserve-3d
+      width: 9em
+      height: 9em
+      position: absolute
+      top: 0
+      left: 0
+
+      > *
+        background: black
+        -webkit-backface-visibility: hidden
+        position: absolute
+        left: 0
+        top: 0
+        transform-origin: 50% 50%
+
+        > *
+          box-sizing: border-box
+          border: 0.13em solid black
+          float: left
+          height: 3em
+          width: 3em
+          position: relative
+
+          &.highlight
+            border-width: 0.5em
+            border-color: #0F0
+
+      .f
+        transform: rotateY(0deg) translateZ(1.5em)
+        z-index: 9
+        height: 9em
+        width: 9em
+        width: 9em
+
+      .r
+        transform: rotateY(90deg) translateZ(7.5em) rotateZ(180deg)
+        width: 3em
+        height: 9em
+
+      .l
+        transform: rotateY(-90deg) translateZ(1.5em)
+        width: 3em
+        height: 9em
+
+      .u
+        transform: rotateX(90deg) translateZ(1.5em) rotateZ(180deg)
+        height: 3em
+        width: 9em
+
+      .d
+        transform: rotateX(-90deg) translateZ(7.5em)
+        height: 3em
+        width: 9em
+
+      .b
+        transform: rotateX(180deg) translateZ(1.5em)
+        height: 9em
+        width: 9em
+
+
+    .top
+      transform: translateZ(3em)
+
+      &.rotate-clockwise
+        transform: translateZ(3em) rotateZ(90deg)
+        transition: transform 1.5s ease-in-out
+
+      &.rotate-anticlockwise
+        transform: translateZ(3em) rotateZ(-90deg)
+        transition: transform 1.5s ease-in-out
+
+      &.rotate-twice
+        transform: translateZ(3em) rotateZ(-180deg)
+        transition: transform 2s ease-in-out
+
+    .middle
+      transform: translateZ(0)
+
+      &.rotate-clockwise
+        transform: translateZ(0) rotateZ(90deg)
+        transition: transform 1.5s ease-in-out
+
+      &.rotate-anticlockwise
+        transform: translateZ(0) rotateZ(-90deg)
+        transition: transform 1.5s ease-in-out
+
+      &.rotate-twice
+        transform: translateZ(0) rotateZ(-180deg)
+        transition: transform 2s ease-in-out
+
+    .bottom
+      transform: translateZ(-3em)
